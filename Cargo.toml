@@ -1,0 +1,10 @@
+cargo-features = ["edition"]
+
+[package]
+name = "program"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[dependencies]
+integer-sqrt = "0.1.1"
