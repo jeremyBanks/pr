@@ -9,8 +9,8 @@ use std::time::Duration;
 use test::{black_box, Bencher};
 
 mod erato_one;
-mod prime_generator;
 mod naive;
+mod prime_generator;
 
 pub mod prelude {
     pub use super::prime_generator::prelude::*;
@@ -18,93 +18,74 @@ pub mod prelude {
 use self::prelude::*;
 
 fn main() {
-    println!("{:?}", erato_one::EratoOne::default().into_iter().skip(1_000).next().unwrap())
+    println!(
+        "{:?}",
+        erato_one::EratoOne::default()
+            .into_iter()
+            .skip(1_000)
+            .next()
+            .unwrap()
+    )
 }
 
-#[test]
-fn test_erato_one_iter_check_known_primes() {
-    let generator = erato_one::EratoOne::default();
+macro_rules! generator_tests {
+    ($($name:ident => $new:path),*,) => {
+        mod tests {
+            $(
+                #[allow(non_snake_case)]
+                mod $name {
+                    use super::super::*;
 
-    for (&expected, actual) in KNOWN_PRIMES.iter().zip(generator.into_iter()) {
-        assert_eq!(expected, actual);
+                    #[test]
+                    fn check_known_primes() {
+                        let generator = $new();
+                        for (&expected, actual) in super::super::KNOWN_PRIMES.iter().zip(generator.into_iter()) {
+                            assert_eq!(expected, actual);
+                        }
+                    }
+
+                    #[bench]
+                    fn bench_to_fifty_thousand(b: &mut Bencher) {
+                        b.iter(|| {
+                            black_box({
+                                let mut generator = $new();
+                                let primes = generator.range(0..=50_000);
+                                primes
+                            })
+                        })
+                    }
+
+                    #[bench]
+                    fn bench_to_hundred_thousand(b: &mut Bencher) {
+                        b.iter(|| {
+                            black_box({
+                                let mut generator = $new();
+                                let primes = generator.range(0..=100_000);
+                                primes
+                            })
+                        })
+                    }
+
+                    #[bench]
+                    fn bench_to_fifty_thousand_then_hundred_thousand(b: &mut Bencher) {
+                        b.iter(|| {
+                            black_box({
+                                let mut generator = $new();
+                                let primes = generator.range(0..=50_000);
+                                let primes_2 = generator.range(0..=100_000);
+                                (primes, primes_2)
+                            })
+                        })
+                    }
+                }
+            )*
+        }
     }
 }
 
-#[bench]
-fn bench_erato_one_to_hundred_thousand(b: &mut Bencher) {
-    b.iter(|| {
-        black_box({
-            let mut generator = erato_one::EratoOne::default();
-            let primes = generator.range(0..=100_000);
-            primes
-        })
-    })
-}
-
-#[bench]
-fn bench_erato_one_to_fifty_thousand(b: &mut Bencher) {
-    b.iter(|| {
-        black_box({
-            let mut generator = erato_one::EratoOne::default();
-            let primes = generator.range(0..=50_000);
-            primes
-        })
-    })
-}
-
-#[bench]
-fn bench_erato_one_to_fifty_thousand_then_hundred_thousand(b: &mut Bencher) {
-    b.iter(|| {
-        black_box({
-            let mut generator = erato_one::EratoOne::default();
-            let primes = generator.range(0..=50_000);
-            let primes_2 = generator.range(0..=100_000);
-            (primes, primes_2)
-        })
-    })
-}
-
-#[test]
-fn test_naive_iter_check_known_primes() {
-    let generator = naive::Naive::default();
-
-    for (&expected, actual) in KNOWN_PRIMES.iter().zip(generator.into_iter()) {
-        assert_eq!(expected, actual);
-    }
-}
-
-#[bench]
-fn bench_naive_to_hundred_thousand(b: &mut Bencher) {
-    b.iter(|| {
-        black_box({
-            let mut generator = naive::Naive::default();
-            let primes = generator.range(0..=100_000);
-            primes
-        })
-    })
-}
-
-#[bench]
-fn bench_naive_to_fifty_thousand(b: &mut Bencher) {
-    b.iter(|| {
-        black_box({
-            let mut generator = naive::Naive::default();
-            let primes = generator.range(0..=50_000);
-            primes
-        })
-    })
-}
-
-#[bench]
-fn bench_naive_to_fifty_thousand_then_hundred_thousand(b: &mut Bencher) {
-    b.iter(|| {
-        black_box({
-            let mut generator = naive::Naive::default();
-            let primes = generator.range(0..=50_000);
-            let primes_2 = generator.range(0..=100_000);
-            (primes, primes_2)
-        })
-    })
+generator_tests!{
+    erato_one => erato_one::EratoOne::default,
+    naive => naive::Naive::default,
 }
 
 #[allow(dead_code)]

@@ -1,5 +1,3 @@
-use integer_sqrt::IntegerSquareRoot;
-
 use super::prelude::*;
 
 #[derive(Debug)]
@@ -22,8 +20,13 @@ impl PrimeGenerator for EratoOne {
         if max > self.max_tested {
             let candidates = (self.max_tested + 1)..=max;
 
+            let mut max_factor = 1;
+            let mut max_factor_until = 0;
             'candidates: for candidate in candidates {
-                let max_factor = candidate.integer_sqrt();
+                while candidate > max_factor_until {
+                    max_factor += 1;
+                    max_factor_until = max_factor * max_factor;
+                }
                 let possible_factors = self.primes.iter().take_while(|&&n| n <= max_factor);
                 for factor in possible_factors {
                     if candidate % factor == 0 {
