@@ -3,7 +3,12 @@ use std::{
     ops::{Bound::*, RangeBounds},
 };
 
-trait PrimeGenerator {
+pub mod prelude {
+    pub use super::InfiniteIterator;
+    pub use super::PrimeGenerator;
+}
+
+pub trait PrimeGenerator: Sized {
     fn generate(&mut self, min: u64, max: u64) -> Vec<u64>;
 
     fn range(&mut self, range: impl RangeBounds<u64>) -> Vec<u64> {
@@ -21,18 +26,15 @@ trait PrimeGenerator {
 
         self.generate(min, max)
     }
-}
 
-impl IntoIterator for PrimeGenerator {
-    type Item = u64;
-    type IntoIter = PrimeIterator;
-
-    fn into_iter(self) -> PrimeIterator {
+    // TODO: move into IntoIterator trait
+    fn into_iter(self) -> PrimeIterator<Self> {
         PrimeIterator::new(self)
     }
 }
 
-struct PrimeIterator<Generator: PrimeGenerator> {
+#[derive(Debug)]
+pub struct PrimeIterator<Generator: PrimeGenerator> {
     generator: Generator,
     buffer: Vec<u64>,
     buffer_min: u64,
@@ -53,7 +55,7 @@ impl<Generator: PrimeGenerator> PrimeIterator<Generator> {
 }
 
 /// Marker trait for infinite iterators
-trait InfiniteIterator: Iterator {
+pub trait InfiniteIterator: Iterator {
     fn pop(&mut self) -> Self::Item {
         Iterator::next(self).expect("this InfiniteIterator was finite")
     }
@@ -65,7 +67,7 @@ impl<Generator: PrimeGenerator> Iterator for PrimeIterator<Generator> {
     type Item = u64;
 
     fn next(&mut self) -> Option<u64> {
-        if self.index_in_buffer >= self.buffer.len() {
+        if self.buffer_index >= self.buffer.len() {
             let old_range_size = self.buffer_max - self.buffer_min;
             let new_range_size = if old_range_size == 0 {
                 1024
@@ -78,12 +80,12 @@ impl<Generator: PrimeGenerator> Iterator for PrimeIterator<Generator> {
             self.buffer_min = self.buffer_max + 1;
             self.buffer_max = self.buffer_min + new_range_size - 1;
             self.buffer = self.generator.range(self.buffer_min..=self.buffer_max);
-            self.index_in_buffer = 0;
+            self.buffer_index = 0;
         }
 
-        let value = self.buffer[self.index_in_buffer];
-        self.index_in_buffer += 1;
-        value
+        let value = self.buffer[self.buffer_index];
+        self.buffer_index += 1;
+        Some(value)
     }
 }
 
